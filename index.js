@@ -46,6 +46,14 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+    // Empoyee list
+    app.get("/users/employee", async (req, res) => {
+      const query = {};
+      const options = { sort: { createdAt: -1 } };
+      const cursor = usersCollection.find(query, options);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
 
     // request asset for the employee
     app.get("/requestAssets", async (req, res) => {
@@ -205,6 +213,94 @@ async function run() {
       }
     });
 
+    // app.patch("/requestAssets/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const status = req.body.status;
+
+    //   // 1️⃣ Get the request asset info
+    //   const requestData = await requestAssetsCollection.findOne({
+    //     _id: new ObjectId(id),
+    //   });
+
+    //   if (!requestData) {
+    //     return res.status(404).send({ message: "Request not found" });
+    //   }
+
+    //   // 🔹 Get employee info from users collection
+    //   // Assume requestData has "employeeName" or some identifier to find the user
+    //   const employee = await usersCollection.findOne({
+    //     name: requestData.employeeName, // যদি email না থাকে
+    //   });
+
+    //   if (!employee) {
+    //     return res
+    //       .status(404)
+    //       .send({ message: "Employee not found in users collection" });
+    //   }
+
+    //   const companyName = employee.companyName || "Unknown";
+    //   const employeeEmail = employee.email;
+
+    //   // 2️⃣ Decrease asset quantity if approving
+    //   if (status === "approved") {
+    //     const assetId = requestData.assetId;
+
+    //     if (assetId) {
+    //       const assetData = await hrAssetsCollection.findOne({
+    //         _id: new ObjectId(assetId),
+    //       });
+
+    //       if (!assetData || assetData.productQuantity <= 0) {
+    //         return res
+    //           .status(400)
+    //           .send({ message: "Asset out of stock. Cannot approve." });
+    //       }
+
+    //       await hrAssetsCollection.updateOne(
+    //         { _id: new ObjectId(assetId) },
+    //         { $inc: { productQuantity: -1 } }
+    //       );
+    //     }
+
+    //     // 3️⃣ Insert into employee assigned assets
+    //     const assignedAsset = {
+    //       employeeEmail,
+    //       productType: requestData.productType,
+    //       productName: requestData.productName,
+    //       productQuantity: 1,
+    //       productURL: requestData.productURL,
+    //       companyName,
+    //       requestDate: requestData.createdAt,
+    //       approvalDate: new Date(),
+    //       status: "Approved",
+    //     };
+
+    //     await employeeAssetsCollection.insertOne(assignedAsset);
+
+    //     // 4️⃣ Create affiliation if not exists
+    //     const alreadyAffiliated = await affiliationsCollection.findOne({
+    //       employeeEmail,
+    //       companyName,
+    //     });
+
+    //     if (!alreadyAffiliated) {
+    //       await affiliationsCollection.insertOne({
+    //         employeeEmail,
+    //         companyName,
+    //         createdAt: new Date(),
+    //       });
+    //     }
+    //   }
+
+    //   // 5️⃣ Update request status
+    //   const query = { _id: new ObjectId(id) };
+    //   const updateDoc = { $set: { status } };
+    //   const result = await requestAssetsCollection.updateOne(query, updateDoc);
+
+    //   res.send(result);
+    // });
+
+    // ata perfectly kaj korese
     app.patch("/requestAssets/:id", async (req, res) => {
       const id = req.params.id;
       const status = req.body.status;
@@ -214,6 +310,21 @@ async function run() {
         const requestData = await requestAssetsCollection.findOne({
           _id: new ObjectId(id),
         });
+
+        // 🔹 Get employee info from users collection
+        // Assume requestData has "employeeName" or some identifier to find the user
+        const employee = await usersCollection.findOne({
+          name: requestData.empplyeeName, // যদি email না থাকে
+        });
+
+        if (!employee) {
+          return res
+            .status(404)
+            .send({ message: "Employee not found in users collection" });
+        }
+
+        const companyName = employee?.companyName || "Unknown";
+        // const employeeEmail = employee.email;
 
         const assetId = requestData.assetId;
 
@@ -244,10 +355,10 @@ async function run() {
           productName: requestData.productName,
           productQuantity: 1,
           productURL: requestData.productURL,
-          companyName: requestData.companyName,
+          companyName: companyName,
           requestDate: requestData.createdAt,
           approvalDate: new Date(),
-          status: "approved",
+          status: "Approved",
         };
 
         await employeeAssetsCollection.insertOne(assignedAsset);
@@ -273,6 +384,49 @@ async function run() {
       const updateDoc = { $set: { status: status } };
       const result = await requestAssetsCollection.updateOne(query, updateDoc);
 
+      res.send(result);
+    });
+
+    // for the return button
+    app.patch("/employeeAssets/return/:id", async (req, res) => {
+      const id = req.params.id;
+
+      try {
+        const asset = await employeeAssetsCollection.findOne({
+          _id: new ObjectId(id),
+        });
+
+        if (!asset) {
+          return res.status(404).send({ error: "Asset not found" });
+        }
+
+        // Update employee asset status → Returned
+        const updateEmployeeAsset = await employeeAssetsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { status: "Returned" } }
+        );
+
+        // Increase product inventory count
+        const updateInventory = await hrAssetsCollection.updateOne(
+          { _id: new ObjectId(asset.assetId) },
+          { $inc: { quantity: 1 } }
+        );
+
+        res.send({
+          success: true,
+          employeeAsset: updateEmployeeAsset,
+          inventory: updateInventory,
+        });
+      } catch (err) {
+        res.status(500).send({ error: err.message });
+      }
+    });
+
+    // employee delete
+    app.delete("/users/employee-team-delete/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await usersCollection.deleteOne(query);
       res.send(result);
     });
 
