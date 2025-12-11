@@ -30,8 +30,18 @@ async function run() {
 
     // employee assigned asset list
     app.get("/employeeAssets", async (req, res) => {
+      const searchText = req.query.searchText;
+      const filterType = req.query.type;
       const query = {};
       const options = { sort: { createdAt: -1 } };
+      if (searchText) {
+        query.productName = { $regex: searchText, $options: "i" };
+      }
+      // filter type
+      // Type filter
+      if (filterType) {
+        query.productType = filterType; // <-- match returnable or non-returnable
+      }
       const cursor = employeeAssetsCollection.find(query, options);
       const result = await cursor.toArray();
       res.send(result);
@@ -237,7 +247,7 @@ async function run() {
           companyName: requestData.companyName,
           requestDate: requestData.createdAt,
           approvalDate: new Date(),
-          status: "assigned",
+          status: "approved",
         };
 
         await employeeAssetsCollection.insertOne(assignedAsset);
