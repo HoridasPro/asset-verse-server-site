@@ -6,6 +6,16 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
 const port = process.env.PORT || 3000;
 
+// for the tracking id
+const crypto = require("crypto");
+function generateTrackingId() {
+  const prefix = "ZAP"; // your brand prefix
+  const date = new Date().toISOString().slice(0, 10).replace(/-/g, ""); // YYYYMMDD
+  const randomPart = crypto.randomBytes(3).toString("hex").toUpperCase(); // 6-digit hex
+
+  return `${prefix}-${date}-${randomPart}`;
+}
+
 app.use(express.json());
 app.use(cors());
 
@@ -29,6 +39,7 @@ async function run() {
     const employeeAssetsCollection = db.collection("employeeAssets");
     const affiliationsCollection = db.collection("affiliations");
     const packagesCollection = db.collection("packages");
+    const paymentCollection = db.collection("payment");
 
     // employee assigned asset list
     app.get("/employeeAssets", async (req, res) => {
@@ -106,6 +117,7 @@ async function run() {
     // GET packages - সব package অথবা user-specific
     app.get("/packages", async (req, res) => {
       try {
+        // console.log("QUERY EMAIL:", req.query.email); //
         const email = req.query.email; // যদি email query থাকে, সেই user এর packages fetch হবে
         const query = email ? { email } : {};
         const options = { sort: { createdAt: -1 } };
@@ -158,17 +170,18 @@ async function run() {
 
     app.post("/packages", async (req, res) => {
       try {
-        const { name, employeeLimit, price, email, paymentStatus } = req.body;
+        const { packageName, employeeLimit, price, email, paymentStatus } =
+          req.body;
 
         // Required field check
-        if (!name || !employeeLimit || !price || !email) {
+        if (!packageName || !employeeLimit || !price || !email) {
           return res.status(400).json({ message: "Missing required fields" });
         }
 
         // Duplicate check (same user + same package name)
         const existingPackage = await packagesCollection.findOne({
           email,
-          name,
+          packageName: packageName,
         });
         if (existingPackage) {
           return res
@@ -182,7 +195,7 @@ async function run() {
         )}`;
 
         const newPackage = {
-          name,
+          packageName: packageName,
           employeeLimit,
           price,
           email,
@@ -202,7 +215,7 @@ async function run() {
     // request post for the employee
     app.post("/requestAssets", async (req, res) => {
       const {
-        empplyeeName,
+        employeeName: employeeName,
         productType,
         productName,
         productQuantity,
@@ -212,7 +225,7 @@ async function run() {
         createdAt,
       } = req.body;
       const hrAssetInfo = {
-        empplyeeName,
+        employeeName: employeeName,
         productType,
         productName,
         productQuantity,
@@ -276,7 +289,6 @@ async function run() {
       }
     });
 
-    // for the managers
     app.post("/hr-users", async (req, res) => {
       try {
         const {
@@ -305,89 +317,243 @@ async function run() {
           createdAt,
         };
 
+        // Check if user already exists
         const existingUser = await usersCollection.findOne({ email });
         if (existingUser) {
           return res.status(400).json({ message: "User already exists" });
         }
 
+        // Insert new user
         const result = await usersCollection.insertOne(managerInfo);
+        const userId = result.insertedId;
 
-        res.status(201).json(result);
+        // Default packages without email
+        const defaultPackages = [
+          {
+            packageName: "Basic",
+            employeeLimit: 5,
+            price: 100,
+            userId,
+            paymentStatus: "pay",
+            createdAt: new Date(),
+          },
+          {
+            packageName: "Standard",
+            employeeLimit: 15,
+            price: 900,
+            userId,
+            paymentStatus: "pay",
+            createdAt: new Date(),
+          },
+          {
+            packageName: "Premium",
+            employeeLimit: 30,
+            price: 1900,
+            userId,
+            paymentStatus: "pay",
+            createdAt: new Date(),
+          },
+          {
+            packageName: "Enterprise",
+            employeeLimit: 999,
+            price: 4900,
+            userId,
+            paymentStatus: "pay",
+            createdAt: new Date(),
+          },
+        ];
+
+        // ✅ Insert only if packageName doesn't exist for any user
+        for (const pkg of defaultPackages) {
+          const existingPackage = await packagesCollection.findOne({
+            packageName: pkg.packageName,
+          });
+          if (!existingPackage) {
+            await packagesCollection.insertOne(pkg);
+          }
+        }
+
+        res.status(201).json({ success: true, userId });
       } catch (error) {
         console.error("Server Error:", error);
         res.status(500).json({ message: "Server error" });
       }
     });
 
-    //  payment cheackout
+    // for the managers
+    // app.post("/hr-users", async (req, res) => {
+    //   try {
+    //     const {
+    //       name,
+    //       companyName,
+    //       companyLogo,
+    //       email,
+    //       dateOfBirth,
+    //       role,
+    //       packageLimit,
+    //       currentEmployees,
+    //       subscription,
+    //       createdAt,
+    //     } = req.body;
+
+    //     const managerInfo = {
+    //       name,
+    //       companyName,
+    //       companyLogo,
+    //       email,
+    //       dateOfBirth,
+    //       role,
+    //       packageLimit,
+    //       currentEmployees,
+    //       subscription,
+    //       createdAt,
+    //     };
+
+    //     const existingUser = await usersCollection.findOne({ email });
+    //     if (existingUser) {
+    //       return res.status(400).json({ message: "User already exists" });
+    //     }
+
+    //     const result = await usersCollection.insertOne(managerInfo);
+
+    //     // ✅ FIXED defaultPackages (added correctly)
+    //     const defaultPackages = [
+    //       {
+    //         packageName: "Basic",
+    //         employeeLimit: 5,
+    //         price: 100,
+    //         // email: email,
+    //         paymentStatus: "pay",
+    //         createdAt: new Date(),
+    //       },
+    //       {
+    //         packageName: "Standard",
+    //         employeeLimit: 15,
+    //         price: 900,
+    //         // email: email,
+    //         paymentStatus: "pay",
+    //         createdAt: new Date(),
+    //       },
+    //       {
+    //         packageName: "Premium",
+    //         employeeLimit: 30,
+    //         price: 1900,
+    //         // email: email,
+    //         paymentStatus: "pay",
+    //         createdAt: new Date(),
+    //       },
+    //       {
+    //         packageName: "Enterprise",
+    //         employeeLimit: 999,
+    //         price: 4900,
+    //         // email: email,
+    //         paymentStatus: "pay",
+    //         createdAt: new Date(),
+    //       },
+    //     ];
+
+    //     await packagesCollection.insertMany(defaultPackages);
+
+    //     res.status(201).json({
+    //       success: true,
+    //       userId: result.insertedId,
+    //     });
+    //   } catch (error) {
+    //     console.error("Server Error:", error);
+    //     res.status(500).json({ message: "Server error" });
+    //   }
+    // });
+
+    // payment checkout ralated apis
+
     app.post("/payment-checkout-session", async (req, res) => {
       try {
-        const paymentInfo = req.body;
-        const amount = parseInt(paymentInfo.price) * 100;
+        const { price, packageId, email, packageName, employeeLimit } =
+          req.body;
+
+        const amount = Number(price) * 100;
 
         const session = await stripe.checkout.sessions.create({
+          payment_method_types: ["card"],
+          mode: "payment",
+
           line_items: [
             {
               price_data: {
-                currency: "USD",
+                currency: "usd", // ✅ lowercase
                 unit_amount: amount,
                 product_data: {
-                  name: `Plaese pay for : ${paymentInfo.packageName}`, // FIXED
+                  name: `Please pay for ${packageName}`,
                 },
               },
               quantity: 1,
             },
           ],
-          mode: "payment",
-          hr_manager_email: paymentInfo.email,
-          success_url: `${process.env.SITE_DOMAIN}/hr-dashboard/payment-success?success=true`,
+          customer_email: email, // ✅ FIXED
+
+          // ✅ এখানেই metadata সঠিকভাবে
+          metadata: {
+            packageId: packageId,
+            packageName: packageName,
+            employeeLimit: employeeLimit,
+          },
+
+          success_url: `${process.env.SITE_DOMAIN}/hr-dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
           cancel_url: `${process.env.SITE_DOMAIN}/hr-dashboard/payment-cancel`,
         });
 
-        // return res.send({ url: session.url });
+        res.send({ url: session.url });
       } catch (error) {
         console.error("Stripe Error:", error);
-        return res
-          .status(500)
-          .json({ message: "Stripe Session Failed", error });
+        res.status(500).json({ message: "Stripe Session Failed", error });
       }
     });
-    // Payment related APIs
-    app.post("/create-checkout-session", async (req, res) => {
-      try {
-        const paymentInfo = req.body;
-        const amount = parseInt(paymentInfo.price) * 100;
 
-        const session = await stripe.checkout.sessions.create({
-          line_items: [
-            {
-              price_data: {
-                currency: "USD",
-                unit_amount: amount,
-                product_data: {
-                  name: paymentInfo.packageName, // FIXED
-                },
-              },
-              quantity: 1,
-            },
-          ],
+    //  payment cheackout
+    // app.post("/payment-checkout-session", async (req, res) => {
+    //   try {
+    //     const paymentInfo = req.body;
+    //     const amount = Number(paymentInfo.price) * 100;
 
-          hr_manager_email: paymentInfo.email, // FIXED
+    //     const session = await stripe.checkout.sessions.create({
+    //       line_items: [
+    //         {
+    //           price_data: {
+    //             currency: "USD",
+    //             unit_amount: amount,
+    //             product_data: {
+    //               name: `Please pay for : ${paymentInfo.packageName} employee`, // FIXED
+    //             },
+    //           },
+    //           quantity: 1,
+    //         },
+    //       ],
+    //       mode: "payment",
+    //       customer_email: paymentInfo.hr_manager_email,
 
-          mode: "payment",
+    //       // metadata: {
+    //       //   managerId: paymentInfo.managerId,
+    //       //   packageName: paymentInfo.packageName,
+    //       //   employeeLimit: paymentInfo.employeeLimit,
+    //       // },
+    //       metadata: {
+    //         packageId: paymentInfo._id,
+    //         packageName: paymentInfo.packageName,
+    //         employeeLimit: paymentInfo.employeeLimit,
+    //       },
 
-          success_url: `${process.env.SITE_DOMAIN}/hr-dashboard/payment-success`,
-          cancel_url: `${process.env.SITE_DOMAIN}/hr-dashboard/payment-cancel`,
-        });
+    //       success_url: `${process.env.SITE_DOMAIN}/hr-dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+    //       cancel_url: `${process.env.SITE_DOMAIN}/hr-dashboard/payment-cancel`,
+    //     });
 
-        return res.send({ url: session.url });
-      } catch (error) {
-        console.error("Stripe Error:", error);
-        return res
-          .status(500)
-          .json({ message: "Stripe Session Failed", error });
-      }
-    });
+    //     return res.send({ url: session.url });
+    //   } catch (error) {
+    //     console.error("Stripe Error:", error);
+    //     return res
+    //       .status(500)
+    //       .json({ message: "Stripe Session Failed", error });
+    //   }
+    // });
 
     // ata perfectly kaj korese
     app.patch("/requestAssets/:id", async (req, res) => {
@@ -395,7 +561,7 @@ async function run() {
       const status = req.body.status;
 
       // Only run decrease logic if approving
-      if (status === "approved") {
+      if (status === "Approved") {
         const requestData = await requestAssetsCollection.findOne({
           _id: new ObjectId(id),
         });
@@ -403,7 +569,7 @@ async function run() {
         // 🔹 Get employee info from users collection
         // Assume requestData has "employeeName" or some identifier to find the user
         const employee = await usersCollection.findOne({
-          name: requestData.empplyeeName, // যদি email না থাকে
+          name: requestData.employeeName, // যদি email না থাকে
         });
 
         if (!employee) {
@@ -446,13 +612,13 @@ async function run() {
           productURL: requestData.productURL,
           companyName: companyName,
           requestDate: requestData.createdAt,
+
           approvalDate: new Date(),
           status: "Approved",
         };
 
         await employeeAssetsCollection.insertOne(assignedAsset);
 
-        // ⭐⭐⭐ ADD THIS: Create affiliation if not exists ⭐⭐⭐
         //  const existingUser = await usersCollection.findOne({ email });
         const alreadyAffiliated = await affiliationsCollection.findOne({
           employeeEmail: requestData.employeeEmail,
@@ -475,6 +641,129 @@ async function run() {
 
       res.send(result);
     });
+
+    app.patch("/payment-success", async (req, res) => {
+      try {
+        const sessionId = req.query.session_id;
+        if (!sessionId) {
+          return res.status(400).send({ error: "session_id missing" });
+        }
+
+        // 1️⃣ Stripe session fetch
+        const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+        if (session.payment_status !== "paid") {
+          return res.status(400).send({ error: "Payment not completed" });
+        }
+
+        // 2️⃣ metadata থেকে packageId
+        const packageId = session.metadata.packageId;
+
+        // 3️⃣ package update
+        const updateResult = await packagesCollection.updateOne(
+          { _id: new ObjectId(packageId) },
+          {
+            $set: {
+              paymentStatus: "paid",
+              paidAt: new Date(),
+            },
+          }
+        );
+
+        // 4️⃣ payment history save (check for duplicates)
+        const existingPayment = await paymentCollection.findOne({
+          transactionId: session.payment_intent,
+        });
+
+        let paymentResult = null;
+        if (!existingPayment) {
+          const payment = {
+            hrEmail: session.customer_email,
+            packageName: session.metadata.packageName,
+            employeeLimit: Number(session.metadata.employeeLimit || 0),
+            amount: Number(session.amount_total / 100),
+            transactionId: session.payment_intent,
+            paymentStatus: "paid",
+            currency: session.currency,
+            packageId: session.metadata.packageId,
+            paidAt: new Date(),
+          };
+
+          paymentResult = await paymentCollection.insertOne(payment);
+        }
+
+        // 5️⃣ response
+        res.send({
+          success: true,
+          message: "Payment successful",
+          updatedPackage: updateResult,
+          payment: paymentResult || existingPayment,
+        });
+      } catch (error) {
+        console.error("Payment Success Error:", error);
+        res.status(500).send({ error: error.message });
+      }
+    });
+
+    // app.patch("/payment-success", async (req, res) => {
+    //   try {
+    //     const sessionId = req.query.session_id;
+    //     if (!sessionId) {
+    //       return res.status(400).send({ error: "session_id missing" });
+    //     }
+    //       const existingUser = await usersCollection.findOne({ sessionId });
+    //     if (existingUser) {
+    //       return res.status(400).json({ message: "User already exists" });
+    //     }
+
+    //     // 1️⃣ Stripe session fetch
+    //     const session = await stripe.checkout.sessions.retrieve(sessionId);
+
+    //     if (session.payment_status !== "paid") {
+    //       return res.status(400).send({ error: "Payment not completed" });
+    //     }
+
+    //     // 2️⃣ metadata থেকে packageId
+    //     const packageId = session.metadata.packageId;
+
+    //     // 3️⃣ package update
+    //     const updateResult = await packagesCollection.updateOne(
+    //       { _id: new ObjectId(packageId) },
+    //       {
+    //         $set: {
+    //           paymentStatus: "paid",
+    //           paidAt: new Date(),
+    //         },
+    //       }
+    //     );
+
+    //     // 4️⃣ payment history save
+    //     const payment = {
+    //       hrEmail: session.customer_email,
+    //       packageName: session.metadata.packageName,
+    //       employeeLimit: Number(session.metadata.employeeLimit || 0),
+    //       amount: Number(session.amount_total / 100),
+    //       transactionId: session.payment_intent,
+    //       paymentStatus: "paid",
+    //       currency: session.currency,
+    //       packageId: session.metadata.packageId,
+    //       paidAt: new Date(),
+    //     };
+
+    //     const paymentResult = await paymentCollection.insertOne(payment);
+
+    //     // 5️⃣ response
+    //     res.send({
+    //       success: true,
+    //       message: "Payment successful",
+    //       updatedPackage: updateResult,
+    //       payment: paymentResult,
+    //     });
+    //   } catch (error) {
+    //     console.error("Payment Success Error:", error);
+    //     res.status(500).send({ error: error.message });
+    //   }
+    // });
 
     // for the return button
     app.patch("/employeeAssets/return/:id", async (req, res) => {
