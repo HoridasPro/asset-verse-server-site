@@ -208,23 +208,23 @@ async function run() {
       }
     });
 
-    // // get employees
-    // app.get("/employees", async (req, res) => {
-    //   try {
-    //     const { email } = req.query;
-    //     if (!email)
-    //       return res.status(400).send({ message: "Email is required" });
+    // get employees
+    app.get("/employees", async (req, res) => {
+      try {
+        const { email } = req.query;
+        if (!email)
+          return res.status(400).send({ message: "Email is required" });
 
-    //     const employee = await employeeCollection
-    //       .find({ email: email, role: "employee" })
-    //       .toArray();
+        const employee = await employeeCollection
+          .find({ email: email, role: "employee" })
+          .toArray();
 
-    //     res.send(employee);
-    //   } catch (err) {
-    //     console.error(err);
-    //     res.status(500).send({ message: "Error fetching employee" });
-    //   }
-    // });
+        res.send(employee);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Error fetching employee" });
+      }
+    });
 
     // // employee assigned assets list
     // app.get("/employeeAssets", async (req, res) => {
