@@ -367,39 +367,39 @@ async function run() {
         res.status(500).json({ message: error.message });
       }
     });
-    // app.post("/packages", async (req, res) => {
-    //   try {
-    //     const { packageName, employeeLimit, price, email, paymentStatus } =
-    //       req.body;
-    //     if (!packageName || !employeeLimit || !price || !email) {
-    //       return res.status(400).json({ message: "Missing required fields" });
-    //     }
-    //     const existingPackage = await packagesCollection.findOne({
-    //       email,
-    //       packageName: packageName,
-    //     });
-    //     if (existingPackage) {
-    //       return res
-    //         .status(400)
-    //         .json({ message: "Package already exists for this user" });
-    //     }
-    //     const trackingId = generateTrackingId();
-    //     const newPackage = {
-    //       packageName,
-    //       employeeLimit,
-    //       price,
-    //       email,
-    //       paymentStatus: paymentStatus || "pending",
-    //       createdAt: new Date(),
-    //       trackingId,
-    //     };
-    //     const result = await packagesCollection.insertOne(newPackage);
-    //     res.status(201).json(result);
-    //   } catch (error) {
-    //     console.error("Error adding package:", error);
-    //     res.status(500).json({ message: error.message });
-    //   }
-    // });
+    app.post("/packages", async (req, res) => {
+      try {
+        const { packageName, employeeLimit, price, email, paymentStatus } =
+          req.body;
+        if (!packageName || !employeeLimit || !price || !email) {
+          return res.status(400).json({ message: "Missing required fields" });
+        }
+        const existingPackage = await packagesCollection.findOne({
+          email,
+          packageName: packageName,
+        });
+        if (existingPackage) {
+          return res
+            .status(400)
+            .json({ message: "Package already exists for this user" });
+        }
+        const trackingId = generateTrackingId();
+        const newPackage = {
+          packageName,
+          employeeLimit,
+          price,
+          email,
+          paymentStatus: paymentStatus || "pending",
+          createdAt: new Date(),
+          trackingId,
+        };
+        const result = await packagesCollection.insertOne(newPackage);
+        res.status(201).json(result);
+      } catch (error) {
+        console.error("Error adding package:", error);
+        res.status(500).json({ message: error.message });
+      }
+    });
 
     // // Request post for the employee
     // app.post("/requestAssets", async (req, res) => {
