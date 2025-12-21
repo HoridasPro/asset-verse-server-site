@@ -176,256 +176,256 @@ async function run() {
       res.send(user);
     });
 
-    //  Update profile
-    app.patch("/profile", async (req, res) => {
-      console.log("Patch data:", req.body);
-      const { email, name, photoURL } = req.body;
-      const result = await usersCollection.updateOne(
-        { email },
-        { $set: { name, photoURL } }
-      );
-      console.log("Mongo update result:", result);
-      res.send(result);
-    });
+    // //  Update profile
+    // app.patch("/profile", async (req, res) => {
+    //   console.log("Patch data:", req.body);
+    //   const { email, name, photoURL } = req.body;
+    //   const result = await usersCollection.updateOne(
+    //     { email },
+    //     { $set: { name, photoURL } }
+    //   );
+    //   console.log("Mongo update result:", result);
+    //   res.send(result);
+    // });
 
-    // Get companies data
-    app.get("/companies", async (req, res) => {
-      try {
-        const companies = await employeeCollection
-          .aggregate([
-            { $match: { role: "hr" } },
-            {
-              $group: {
-                _id: "$companyName",
-                name: { $first: "$companyName" },
-              },
-            },
-          ])
-          .toArray();
-        res.send(companies);
-      } catch (err) {
-        res.status(500).send({ message: "Error fetching companies" });
-      }
-    });
+    // // Get companies data
+    // app.get("/companies", async (req, res) => {
+    //   try {
+    //     const companies = await employeeCollection
+    //       .aggregate([
+    //         { $match: { role: "hr" } },
+    //         {
+    //           $group: {
+    //             _id: "$companyName",
+    //             name: { $first: "$companyName" },
+    //           },
+    //         },
+    //       ])
+    //       .toArray();
+    //     res.send(companies);
+    //   } catch (err) {
+    //     res.status(500).send({ message: "Error fetching companies" });
+    //   }
+    // });
 
-    // get employees
-    app.get("/employees", async (req, res) => {
-      try {
-        const { email } = req.query;
-        if (!email)
-          return res.status(400).send({ message: "Email is required" });
+    // // get employees
+    // app.get("/employees", async (req, res) => {
+    //   try {
+    //     const { email } = req.query;
+    //     if (!email)
+    //       return res.status(400).send({ message: "Email is required" });
 
-        const employee = await employeeCollection
-          .find({ email: email, role: "employee" })
-          .toArray();
+    //     const employee = await employeeCollection
+    //       .find({ email: email, role: "employee" })
+    //       .toArray();
 
-        res.send(employee);
-      } catch (err) {
-        console.error(err);
-        res.status(500).send({ message: "Error fetching employee" });
-      }
-    });
+    //     res.send(employee);
+    //   } catch (err) {
+    //     console.error(err);
+    //     res.status(500).send({ message: "Error fetching employee" });
+    //   }
+    // });
 
-    // employee assigned assets list
-    app.get("/employeeAssets", async (req, res) => {
-      const searchText = req.query.searchText;
-      const filterType = req.query.type;
-      const query = {};
-      const options = { sort: { createdAt: -1 } };
-      if (searchText) {
-        query.productName = { $regex: searchText, $options: "i" };
-      }
+    // // employee assigned assets list
+    // app.get("/employeeAssets", async (req, res) => {
+    //   const searchText = req.query.searchText;
+    //   const filterType = req.query.type;
+    //   const query = {};
+    //   const options = { sort: { createdAt: -1 } };
+    //   if (searchText) {
+    //     query.productName = { $regex: searchText, $options: "i" };
+    //   }
 
-      // Type filter
-      if (filterType) {
-        query.productType = filterType;
-      }
-      const cursor = requestAssetsCollection.find(query, options);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+    //   // Type filter
+    //   if (filterType) {
+    //     query.productType = filterType;
+    //   }
+    //   const cursor = requestAssetsCollection.find(query, options);
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
 
-    // Employees list
-    app.get("/users/employee", async (req, res) => {
-      const query = {};
-      const options = { sort: { createdAt: -1 } };
-      const cursor = employeeCollection.find(query, options);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+    // // Employees list
+    // app.get("/users/employee", async (req, res) => {
+    //   const query = {};
+    //   const options = { sort: { createdAt: -1 } };
+    //   const cursor = employeeCollection.find(query, options);
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
 
-    // Request asset for the employee
-    app.get("/requestAssets", async (req, res) => {
-      const query = {};
-      const options = { sort: { createdAt: -1 } };
-      const cursor = requestAssetsCollection.find(query, options).limit(10);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
-    // To get data for the hr collection
-    app.get("/hrAssets", async (req, res) => {
-      const query = {};
-      const options = { sort: { createdAt: -1 } };
-      const cursor = hrAssetsCollection.find(query, options).limit(10);
-      const result = await cursor.toArray();
-      res.send(result);
-    });
+    // // Request asset for the employee
+    // app.get("/requestAssets", async (req, res) => {
+    //   const query = {};
+    //   const options = { sort: { createdAt: -1 } };
+    //   const cursor = requestAssetsCollection.find(query, options).limit(10);
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
+    // // To get data for the hr collection
+    // app.get("/hrAssets", async (req, res) => {
+    //   const query = {};
+    //   const options = { sort: { createdAt: -1 } };
+    //   const cursor = hrAssetsCollection.find(query, options).limit(10);
+    //   const result = await cursor.toArray();
+    //   res.send(result);
+    // });
 
-    //For the hr assets to get
-    app.get("/hrAssets/page", async (req, res) => {
-      try {
-        const limit = Number(req.query.limit) || 2;
-        const page = Number(req.query.page) || 1;
-        const skip = (page - 1) * limit;
-        const total = await hrAssetsCollection.countDocuments();
-        const cursor = hrAssetsCollection.find().skip(skip).limit(limit);
-        const result = await cursor.toArray();
-        res.send({
-          data: result,
-          total,
-          page,
-          totalPages: Math.ceil(total / limit),
-        });
-      } catch (error) {
-        res.status(500).send({ message: "Failed to load HR assets" });
-      }
-    });
+    // //For the hr assets to get
+    // app.get("/hrAssets/page", async (req, res) => {
+    //   try {
+    //     const limit = Number(req.query.limit) || 2;
+    //     const page = Number(req.query.page) || 1;
+    //     const skip = (page - 1) * limit;
+    //     const total = await hrAssetsCollection.countDocuments();
+    //     const cursor = hrAssetsCollection.find().skip(skip).limit(limit);
+    //     const result = await cursor.toArray();
+    //     res.send({
+    //       data: result,
+    //       total,
+    //       page,
+    //       totalPages: Math.ceil(total / limit),
+    //     });
+    //   } catch (error) {
+    //     res.status(500).send({ message: "Failed to load HR assets" });
+    //   }
+    // });
 
-    // As a HR user
-    app.get("/users", verifyFBToken, async (req, res) => {
-      const users = await usersCollection
-        .find()
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .toArray();
-      res.send(users);
-    });
+    // // As a HR user
+    // app.get("/users", verifyFBToken, async (req, res) => {
+    //   const users = await usersCollection
+    //     .find()
+    //     .sort({ createdAt: -1 })
+    //     .limit(5)
+    //     .toArray();
+    //   res.send(users);
+    // });
 
-    // patch for the hr users
-    app.patch("/users/hr-user/:id", verifyFBToken, async (req, res) => {
-      const { id } = req.params;
-      const roleInfo = req.body;
-      const query = { _id: new ObjectId(id) };
-      const updateInfo = {
-        $set: {
-          role: roleInfo.role,
-        },
-      };
-      const result = await usersCollection.updateOne(query, updateInfo);
-      res.send(result);
-    });
+    // // patch for the hr users
+    // app.patch("/users/hr-user/:id", verifyFBToken, async (req, res) => {
+    //   const { id } = req.params;
+    //   const roleInfo = req.body;
+    //   const query = { _id: new ObjectId(id) };
+    //   const updateInfo = {
+    //     $set: {
+    //       role: roleInfo.role,
+    //     },
+    //   };
+    //   const result = await usersCollection.updateOne(query, updateInfo);
+    //   res.send(result);
+    // });
 
-    // For the user role
-    app.get("/users/:email/role", async (req, res) => {
-      const email = req.params.email;
-      const query = { email };
-      const user = await usersCollection.findOne(query);
-      res.send({ role: user?.role || "user" });
-    });
+    // // For the user role
+    // app.get("/users/:email/role", async (req, res) => {
+    //   const email = req.params.email;
+    //   const query = { email };
+    //   const user = await usersCollection.findOne(query);
+    //   res.send({ role: user?.role || "user" });
+    // });
 
-    // To get from the employee package
-    app.get("/employee-package/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await packagesCollection.findOne(query);
-      res.send(result);
-    });
+    // // To get from the employee package
+    // app.get("/employee-package/:id", async (req, res) => {
+    //   const id = req.params.id;
+    //   const query = { _id: new ObjectId(id) };
+    //   const result = await packagesCollection.findOne(query);
+    //   res.send(result);
+    // });
 
-    // Get packages
-    app.get("/packages", verifyFBToken, async (req, res) => {
-      try {
-        const email = req.query.email;
-        const query = email ? { email } : {};
-        const options = { sort: { createdAt: -1 } };
-        const cursor = packagesCollection.find(query, options);
-        const result = await cursor.toArray();
-        res.send(result);
-      } catch (error) {
-        console.error("Error fetching packages:", error);
-        res.status(500).json({ message: error.message });
-      }
-    });
+    // // Get packages
+    // app.get("/packages", verifyFBToken, async (req, res) => {
+    //   try {
+    //     const email = req.query.email;
+    //     const query = email ? { email } : {};
+    //     const options = { sort: { createdAt: -1 } };
+    //     const cursor = packagesCollection.find(query, options);
+    //     const result = await cursor.toArray();
+    //     res.send(result);
+    //   } catch (error) {
+    //     console.error("Error fetching packages:", error);
+    //     res.status(500).json({ message: error.message });
+    //   }
+    // });
 
-    // Get payment
-    app.get("/payments", verifyFBToken, async (req, res) => {
-      try {
-        const email = req.query.email;
-        const query = {};
-        if (email) {
-          if (email !== req.decoded_email) {
-            return res.status(403).send({ message: "forbidden access" });
-          }
-          query.hrEmail = email;
-        }
-        const result = await paymentCollection
-          .find(query)
-          .sort({ paidAt: -1 })
-          .toArray();
-        res.send(result);
-      } catch (error) {
-        console.log("Error fetching payment", error);
-        res.status(500).json({ message: error.message });
-      }
-    });
-    app.post("/packages", async (req, res) => {
-      try {
-        const { packageName, employeeLimit, price, email, paymentStatus } =
-          req.body;
-        if (!packageName || !employeeLimit || !price || !email) {
-          return res.status(400).json({ message: "Missing required fields" });
-        }
-        const existingPackage = await packagesCollection.findOne({
-          email,
-          packageName: packageName,
-        });
-        if (existingPackage) {
-          return res
-            .status(400)
-            .json({ message: "Package already exists for this user" });
-        }
-        const trackingId = generateTrackingId();
-        const newPackage = {
-          packageName,
-          employeeLimit,
-          price,
-          email,
-          paymentStatus: paymentStatus || "pending",
-          createdAt: new Date(),
-          trackingId,
-        };
-        const result = await packagesCollection.insertOne(newPackage);
-        res.status(201).json(result);
-      } catch (error) {
-        console.error("Error adding package:", error);
-        res.status(500).json({ message: error.message });
-      }
-    });
+    // // Get payment
+    // app.get("/payments", verifyFBToken, async (req, res) => {
+    //   try {
+    //     const email = req.query.email;
+    //     const query = {};
+    //     if (email) {
+    //       if (email !== req.decoded_email) {
+    //         return res.status(403).send({ message: "forbidden access" });
+    //       }
+    //       query.hrEmail = email;
+    //     }
+    //     const result = await paymentCollection
+    //       .find(query)
+    //       .sort({ paidAt: -1 })
+    //       .toArray();
+    //     res.send(result);
+    //   } catch (error) {
+    //     console.log("Error fetching payment", error);
+    //     res.status(500).json({ message: error.message });
+    //   }
+    // });
+    // app.post("/packages", async (req, res) => {
+    //   try {
+    //     const { packageName, employeeLimit, price, email, paymentStatus } =
+    //       req.body;
+    //     if (!packageName || !employeeLimit || !price || !email) {
+    //       return res.status(400).json({ message: "Missing required fields" });
+    //     }
+    //     const existingPackage = await packagesCollection.findOne({
+    //       email,
+    //       packageName: packageName,
+    //     });
+    //     if (existingPackage) {
+    //       return res
+    //         .status(400)
+    //         .json({ message: "Package already exists for this user" });
+    //     }
+    //     const trackingId = generateTrackingId();
+    //     const newPackage = {
+    //       packageName,
+    //       employeeLimit,
+    //       price,
+    //       email,
+    //       paymentStatus: paymentStatus || "pending",
+    //       createdAt: new Date(),
+    //       trackingId,
+    //     };
+    //     const result = await packagesCollection.insertOne(newPackage);
+    //     res.status(201).json(result);
+    //   } catch (error) {
+    //     console.error("Error adding package:", error);
+    //     res.status(500).json({ message: error.message });
+    //   }
+    // });
 
-    // Request post for the employee
-    app.post("/requestAssets", async (req, res) => {
-      const {
-        employeeName: employeeName,
-        productType,
-        productName,
-        productQuantity,
-        productURL,
-        note,
-        status,
-        createdAt,
-      } = req.body;
-      const hrAssetInfo = {
-        employeeName: employeeName,
-        productType,
-        productName,
-        productQuantity,
-        productURL,
-        note,
-        status,
-        createdAt,
-      };
-      const result = await requestAssetsCollection.insertOne(hrAssetInfo);
-      res.send(result);
-    });
+    // // Request post for the employee
+    // app.post("/requestAssets", async (req, res) => {
+    //   const {
+    //     employeeName: employeeName,
+    //     productType,
+    //     productName,
+    //     productQuantity,
+    //     productURL,
+    //     note,
+    //     status,
+    //     createdAt,
+    //   } = req.body;
+    //   const hrAssetInfo = {
+    //     employeeName: employeeName,
+    //     productType,
+    //     productName,
+    //     productQuantity,
+    //     productURL,
+    //     note,
+    //     status,
+    //     createdAt,
+    //   };
+    //   const result = await requestAssetsCollection.insertOne(hrAssetInfo);
+    //   res.send(result);
+    // });
 
     // For the hr assets to post
     app.post("/hrAssets", async (req, res) => {
