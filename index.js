@@ -226,24 +226,24 @@ async function run() {
       }
     });
 
-    // // employee assigned assets list
-    // app.get("/employeeAssets", async (req, res) => {
-    //   const searchText = req.query.searchText;
-    //   const filterType = req.query.type;
-    //   const query = {};
-    //   const options = { sort: { createdAt: -1 } };
-    //   if (searchText) {
-    //     query.productName = { $regex: searchText, $options: "i" };
-    //   }
+    // employee assigned assets list
+    app.get("/employeeAssets", async (req, res) => {
+      const searchText = req.query.searchText;
+      const filterType = req.query.type;
+      const query = {};
+      const options = { sort: { createdAt: -1 } };
+      if (searchText) {
+        query.productName = { $regex: searchText, $options: "i" };
+      }
 
-    //   // Type filter
-    //   if (filterType) {
-    //     query.productType = filterType;
-    //   }
-    //   const cursor = requestAssetsCollection.find(query, options);
-    //   const result = await cursor.toArray();
-    //   res.send(result);
-    // });
+      // Type filter
+      if (filterType) {
+        query.productType = filterType;
+      }
+      const cursor = requestAssetsCollection.find(query, options);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
 
     // // Employees list
     // app.get("/users/employee", async (req, res) => {
