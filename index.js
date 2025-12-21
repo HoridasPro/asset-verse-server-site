@@ -262,58 +262,58 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
-    // // To get data for the hr collection
-    // app.get("/hrAssets", async (req, res) => {
-    //   const query = {};
-    //   const options = { sort: { createdAt: -1 } };
-    //   const cursor = hrAssetsCollection.find(query, options).limit(10);
-    //   const result = await cursor.toArray();
-    //   res.send(result);
-    // });
+    // To get data for the hr collection
+    app.get("/hrAssets", async (req, res) => {
+      const query = {};
+      const options = { sort: { createdAt: -1 } };
+      const cursor = hrAssetsCollection.find(query, options).limit(10);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
 
-    // //For the hr assets to get
-    // app.get("/hrAssets/page", async (req, res) => {
-    //   try {
-    //     const limit = Number(req.query.limit) || 2;
-    //     const page = Number(req.query.page) || 1;
-    //     const skip = (page - 1) * limit;
-    //     const total = await hrAssetsCollection.countDocuments();
-    //     const cursor = hrAssetsCollection.find().skip(skip).limit(limit);
-    //     const result = await cursor.toArray();
-    //     res.send({
-    //       data: result,
-    //       total,
-    //       page,
-    //       totalPages: Math.ceil(total / limit),
-    //     });
-    //   } catch (error) {
-    //     res.status(500).send({ message: "Failed to load HR assets" });
-    //   }
-    // });
+    //For the hr assets to get
+    app.get("/hrAssets/page", async (req, res) => {
+      try {
+        const limit = Number(req.query.limit) || 2;
+        const page = Number(req.query.page) || 1;
+        const skip = (page - 1) * limit;
+        const total = await hrAssetsCollection.countDocuments();
+        const cursor = hrAssetsCollection.find().skip(skip).limit(limit);
+        const result = await cursor.toArray();
+        res.send({
+          data: result,
+          total,
+          page,
+          totalPages: Math.ceil(total / limit),
+        });
+      } catch (error) {
+        res.status(500).send({ message: "Failed to load HR assets" });
+      }
+    });
 
-    // // As a HR user
-    // app.get("/users", verifyFBToken, async (req, res) => {
-    //   const users = await usersCollection
-    //     .find()
-    //     .sort({ createdAt: -1 })
-    //     .limit(5)
-    //     .toArray();
-    //   res.send(users);
-    // });
+    // As a HR user
+    app.get("/users", verifyFBToken, async (req, res) => {
+      const users = await usersCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .toArray();
+      res.send(users);
+    });
 
-    // // patch for the hr users
-    // app.patch("/users/hr-user/:id", verifyFBToken, async (req, res) => {
-    //   const { id } = req.params;
-    //   const roleInfo = req.body;
-    //   const query = { _id: new ObjectId(id) };
-    //   const updateInfo = {
-    //     $set: {
-    //       role: roleInfo.role,
-    //     },
-    //   };
-    //   const result = await usersCollection.updateOne(query, updateInfo);
-    //   res.send(result);
-    // });
+    // patch for the hr users
+    app.patch("/users/hr-user/:id", verifyFBToken, async (req, res) => {
+      const { id } = req.params;
+      const roleInfo = req.body;
+      const query = { _id: new ObjectId(id) };
+      const updateInfo = {
+        $set: {
+          role: roleInfo.role,
+        },
+      };
+      const result = await usersCollection.updateOne(query, updateInfo);
+      res.send(result);
+    });
 
     // // For the user role
     // app.get("/users/:email/role", async (req, res) => {
