@@ -315,58 +315,58 @@ async function run() {
       res.send(result);
     });
 
-    // // For the user role
-    // app.get("/users/:email/role", async (req, res) => {
-    //   const email = req.params.email;
-    //   const query = { email };
-    //   const user = await usersCollection.findOne(query);
-    //   res.send({ role: user?.role || "user" });
-    // });
+    // For the user role
+    app.get("/users/:email/role", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      res.send({ role: user?.role || "user" });
+    });
 
-    // // To get from the employee package
-    // app.get("/employee-package/:id", async (req, res) => {
-    //   const id = req.params.id;
-    //   const query = { _id: new ObjectId(id) };
-    //   const result = await packagesCollection.findOne(query);
-    //   res.send(result);
-    // });
+    // To get from the employee package
+    app.get("/employee-package/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const result = await packagesCollection.findOne(query);
+      res.send(result);
+    });
 
-    // // Get packages
-    // app.get("/packages", verifyFBToken, async (req, res) => {
-    //   try {
-    //     const email = req.query.email;
-    //     const query = email ? { email } : {};
-    //     const options = { sort: { createdAt: -1 } };
-    //     const cursor = packagesCollection.find(query, options);
-    //     const result = await cursor.toArray();
-    //     res.send(result);
-    //   } catch (error) {
-    //     console.error("Error fetching packages:", error);
-    //     res.status(500).json({ message: error.message });
-    //   }
-    // });
+    // Get packages
+    app.get("/packages", verifyFBToken, async (req, res) => {
+      try {
+        const email = req.query.email;
+        const query = email ? { email } : {};
+        const options = { sort: { createdAt: -1 } };
+        const cursor = packagesCollection.find(query, options);
+        const result = await cursor.toArray();
+        res.send(result);
+      } catch (error) {
+        console.error("Error fetching packages:", error);
+        res.status(500).json({ message: error.message });
+      }
+    });
 
-    // // Get payment
-    // app.get("/payments", verifyFBToken, async (req, res) => {
-    //   try {
-    //     const email = req.query.email;
-    //     const query = {};
-    //     if (email) {
-    //       if (email !== req.decoded_email) {
-    //         return res.status(403).send({ message: "forbidden access" });
-    //       }
-    //       query.hrEmail = email;
-    //     }
-    //     const result = await paymentCollection
-    //       .find(query)
-    //       .sort({ paidAt: -1 })
-    //       .toArray();
-    //     res.send(result);
-    //   } catch (error) {
-    //     console.log("Error fetching payment", error);
-    //     res.status(500).json({ message: error.message });
-    //   }
-    // });
+    // Get payment
+    app.get("/payments", verifyFBToken, async (req, res) => {
+      try {
+        const email = req.query.email;
+        const query = {};
+        if (email) {
+          if (email !== req.decoded_email) {
+            return res.status(403).send({ message: "forbidden access" });
+          }
+          query.hrEmail = email;
+        }
+        const result = await paymentCollection
+          .find(query)
+          .sort({ paidAt: -1 })
+          .toArray();
+        res.send(result);
+      } catch (error) {
+        console.log("Error fetching payment", error);
+        res.status(500).json({ message: error.message });
+      }
+    });
     // app.post("/packages", async (req, res) => {
     //   try {
     //     const { packageName, employeeLimit, price, email, paymentStatus } =
