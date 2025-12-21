@@ -401,31 +401,31 @@ async function run() {
       }
     });
 
-    // // Request post for the employee
-    // app.post("/requestAssets", async (req, res) => {
-    //   const {
-    //     employeeName: employeeName,
-    //     productType,
-    //     productName,
-    //     productQuantity,
-    //     productURL,
-    //     note,
-    //     status,
-    //     createdAt,
-    //   } = req.body;
-    //   const hrAssetInfo = {
-    //     employeeName: employeeName,
-    //     productType,
-    //     productName,
-    //     productQuantity,
-    //     productURL,
-    //     note,
-    //     status,
-    //     createdAt,
-    //   };
-    //   const result = await requestAssetsCollection.insertOne(hrAssetInfo);
-    //   res.send(result);
-    // });
+    // Request post for the employee
+    app.post("/requestAssets", async (req, res) => {
+      const {
+        employeeName: employeeName,
+        productType,
+        productName,
+        productQuantity,
+        productURL,
+        note,
+        status,
+        createdAt,
+      } = req.body;
+      const hrAssetInfo = {
+        employeeName: employeeName,
+        productType,
+        productName,
+        productQuantity,
+        productURL,
+        note,
+        status,
+        createdAt,
+      };
+      const result = await requestAssetsCollection.insertOne(hrAssetInfo);
+      res.send(result);
+    });
 
     // For the hr assets to post
     app.post("/hrAssets", async (req, res) => {
