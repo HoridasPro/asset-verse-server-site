@@ -254,14 +254,14 @@ async function run() {
       res.send(result);
     });
 
-    // // Request asset for the employee
-    // app.get("/requestAssets", async (req, res) => {
-    //   const query = {};
-    //   const options = { sort: { createdAt: -1 } };
-    //   const cursor = requestAssetsCollection.find(query, options).limit(10);
-    //   const result = await cursor.toArray();
-    //   res.send(result);
-    // });
+    // Request asset for the employee
+    app.get("/requestAssets", async (req, res) => {
+      const query = {};
+      const options = { sort: { createdAt: -1 } };
+      const cursor = requestAssetsCollection.find(query, options).limit(10);
+      const result = await cursor.toArray();
+      res.send(result);
+    });
     // // To get data for the hr collection
     // app.get("/hrAssets", async (req, res) => {
     //   const query = {};
