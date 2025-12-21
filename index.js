@@ -176,17 +176,17 @@ async function run() {
       res.send(user);
     });
 
-    // //  Update profile
-    // app.patch("/profile", async (req, res) => {
-    //   console.log("Patch data:", req.body);
-    //   const { email, name, photoURL } = req.body;
-    //   const result = await usersCollection.updateOne(
-    //     { email },
-    //     { $set: { name, photoURL } }
-    //   );
-    //   console.log("Mongo update result:", result);
-    //   res.send(result);
-    // });
+    //  Update profile
+    app.patch("/profile", async (req, res) => {
+      console.log("Patch data:", req.body);
+      const { email, name, photoURL } = req.body;
+      const result = await usersCollection.updateOne(
+        { email },
+        { $set: { name, photoURL } }
+      );
+      console.log("Mongo update result:", result);
+      res.send(result);
+    });
 
     // // Get companies data
     // app.get("/companies", async (req, res) => {
