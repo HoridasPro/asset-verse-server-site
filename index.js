@@ -188,25 +188,25 @@ async function run() {
       res.send(result);
     });
 
-    // // Get companies data
-    // app.get("/companies", async (req, res) => {
-    //   try {
-    //     const companies = await employeeCollection
-    //       .aggregate([
-    //         { $match: { role: "hr" } },
-    //         {
-    //           $group: {
-    //             _id: "$companyName",
-    //             name: { $first: "$companyName" },
-    //           },
-    //         },
-    //       ])
-    //       .toArray();
-    //     res.send(companies);
-    //   } catch (err) {
-    //     res.status(500).send({ message: "Error fetching companies" });
-    //   }
-    // });
+    // Get companies data
+    app.get("/companies", async (req, res) => {
+      try {
+        const companies = await employeeCollection
+          .aggregate([
+            { $match: { role: "hr" } },
+            {
+              $group: {
+                _id: "$companyName",
+                name: { $first: "$companyName" },
+              },
+            },
+          ])
+          .toArray();
+        res.send(companies);
+      } catch (err) {
+        res.status(500).send({ message: "Error fetching companies" });
+      }
+    });
 
     // // get employees
     // app.get("/employees", async (req, res) => {
