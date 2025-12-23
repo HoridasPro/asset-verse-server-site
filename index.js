@@ -69,7 +69,7 @@ const client = new MongoClient(uri, {
 // Database
 async function run() {
   try {
-    await client.connect();
+    // await client.connect();
     const db = client.db("asset-verse-project");
     const usersCollection = db.collection("users");
     const hrAssetsCollection = db.collection("hrAssets");
