@@ -269,7 +269,7 @@ async function run() {
       res.send(result);
     });
     // To get data for the hr collection
-    app.get("/hrAssets", async (req, res) => {
+    app.get("/hrAssets", verifyFBToken, async (req, res) => {
       const query = {};
       const options = { sort: { createdAt: -1 } };
       const cursor = hrAssetsCollection.find(query, options).limit(10);
