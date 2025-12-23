@@ -229,7 +229,7 @@ async function run() {
     // employee assigned assets list
     app.get("/employeeAssets", async (req, res) => {
       const searchText = req.query.searchText;
-      const filterType = req.query.type;
+      const filterType = req.query.productType;
       const query = {};
       const options = { sort: { createdAt: -1 } };
       if (searchText) {
