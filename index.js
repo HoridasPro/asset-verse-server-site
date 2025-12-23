@@ -90,56 +90,62 @@ async function run() {
       }
       next();
     };
-    app.get("/employee-request/top-assets", async (req, res) => {
-      try {
-        const result = await requestAssetsCollection
-          .aggregate([
-            {
-              $group: {
-                _id: {
-                  productName: "$productName",
-                  isReturnable: {
-                    $cond: [{ $eq: ["$isReturnable", true] }, true, false],
+    // add employee api
+    app.get(
+      "/employee-request/top-assets",
+      verifyFBToken,
+      verifyAdmin,
+      async (req, res) => {
+        try {
+          const result = await requestAssetsCollection
+            .aggregate([
+              {
+                $group: {
+                  _id: {
+                    productName: "$productName",
+                    isReturnable: {
+                      $cond: [{ $eq: ["$isReturnable", true] }, true, false],
+                    },
+                  },
+                  requestCount: { $sum: 1 },
+                },
+              },
+              { $sort: { requestCount: -1 } },
+              { $limit: 5 },
+              {
+                $project: {
+                  _id: 0,
+                  productName: "$_id.productName",
+                  requestCount: 1,
+                  isReturnable: "$_id.isReturnable",
+                  productType: {
+                    $cond: [
+                      { $eq: ["$_id.isReturnable", true] },
+                      "Returnable",
+                      "Non-returnable",
+                    ],
                   },
                 },
-                requestCount: { $sum: 1 },
               },
-            },
-            { $sort: { requestCount: -1 } },
-            { $limit: 5 },
-            {
-              $project: {
-                _id: 0,
-                productName: "$_id.productName",
-                requestCount: 1,
-                isReturnable: "$_id.isReturnable",
-                productType: {
-                  $cond: [
-                    { $eq: ["$_id.isReturnable", true] },
-                    "Returnable",
-                    "Non-returnable",
-                  ],
-                },
-              },
-            },
-          ])
-          .toArray();
+            ])
+            .toArray();
 
-        res.send(result);
-      } catch (error) {
-        res.status(500).send({ message: "Failed to load top assets" });
+          res.send(result);
+        } catch (error) {
+          res.status(500).send({ message: "Failed to load top assets" });
+        }
       }
-    });
+    );
 
     // for the pdf
-    app.get("/employeeAssets", async (req, res) => {
+    app.get("/employeeAssets", verifyFBToken, verifyAdmin, async (req, res) => {
       const cursor = requestAssetsCollection.find();
       const result = await cursor.toArray();
       res.send(result);
     });
 
     // all apps
-    app.get("/productType", async (req, res) => {
+    app.get("/productType", verifyFBToken, verifyAdmin, async (req, res) => {
       try {
         const result = await requestAssetsCollection
           .aggregate([
@@ -177,7 +183,7 @@ async function run() {
     });
 
     //  Update profile
-    app.patch("/profile", async (req, res) => {
+    app.patch("/profile", verifyFBToken, async (req, res) => {
       console.log("Patch data:", req.body);
       const { email, name, photoURL } = req.body;
       const result = await usersCollection.updateOne(
@@ -189,7 +195,7 @@ async function run() {
     });
 
     // Get companies data
-    app.get("/companies", async (req, res) => {
+    app.get("/companies", verifyFBToken, async (req, res) => {
       try {
         const companies = await employeeCollection
           .aggregate([
@@ -209,7 +215,7 @@ async function run() {
     });
 
     // get employees
-    app.get("/employees", async (req, res) => {
+    app.get("/employees", verifyFBToken, async (req, res) => {
       try {
         const { email } = req.query;
         if (!email)
@@ -227,7 +233,7 @@ async function run() {
     });
 
     // employee assigned assets list api
-    app.get("/employeeAssets", async (req, res) => {
+    app.get("/employeeAssets", verifyFBToken, async (req, res) => {
       const searchText = req.query.searchText;
       const filterType = req.query.productType;
       const query = {};
@@ -246,7 +252,7 @@ async function run() {
     });
 
     // Employees list
-    app.get("/users/employee", async (req, res) => {
+    app.get("/users/employee", verifyFBToken, async (req, res) => {
       const query = {};
       const options = { sort: { createdAt: -1 } };
       const cursor = employeeCollection.find(query, options);
@@ -255,7 +261,7 @@ async function run() {
     });
 
     // Request asset for the employee
-    app.get("/requestAssets", async (req, res) => {
+    app.get("/requestAssets", verifyFBToken, verifyAdmin, async (req, res) => {
       const query = {};
       const options = { sort: { createdAt: -1 } };
       const cursor = requestAssetsCollection.find(query, options).limit(10);
@@ -272,7 +278,7 @@ async function run() {
     });
 
     //For the hr assets to get
-    app.get("/hrAssets/page", async (req, res) => {
+    app.get("/hrAssets/page", verifyFBToken, async (req, res) => {
       try {
         const limit = Number(req.query.limit) || 2;
         const page = Number(req.query.page) || 1;
@@ -316,7 +322,7 @@ async function run() {
     });
 
     // For the user role
-    app.get("/users/:email/role", async (req, res) => {
+    app.get("/users/:email/role", verifyFBToken, async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await usersCollection.findOne(query);
@@ -324,7 +330,7 @@ async function run() {
     });
 
     // To get from the employee package
-    app.get("/employee-package/:id", async (req, res) => {
+    app.get("/employee-package/:id", verifyFBToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await packagesCollection.findOne(query);
@@ -367,7 +373,7 @@ async function run() {
         res.status(500).json({ message: error.message });
       }
     });
-    app.post("/packages", async (req, res) => {
+    app.post("/packages", verifyFBToken, async (req, res) => {
       try {
         const { packageName, employeeLimit, price, email, paymentStatus } =
           req.body;
@@ -402,7 +408,7 @@ async function run() {
     });
 
     // Request post for the employee
-    app.post("/requestAssets", async (req, res) => {
+    app.post("/requestAssets", verifyFBToken, async (req, res) => {
       const {
         employeeName: employeeName,
         productType,
@@ -428,7 +434,7 @@ async function run() {
     });
 
     // For the hr assets to post
-    app.post("/hrAssets", async (req, res) => {
+    app.post("/hrAssets", verifyFBToken, async (req, res) => {
       const {
         productType,
         productName,
@@ -450,7 +456,7 @@ async function run() {
     });
 
     // Employee Registration Route
-    app.post("/em-users", async (req, res) => {
+    app.post("/em-users", verifyFBToken, async (req, res) => {
       try {
         const { name, email, dateOfBirth, photoURL, role, createdAt } =
           req.body;
@@ -477,7 +483,7 @@ async function run() {
     });
 
     // For the post users
-    app.post("/users", async (req, res) => {
+    app.post("/users", verifyFBToken, async (req, res) => {
       try {
         const {
           name,
@@ -567,7 +573,7 @@ async function run() {
     });
 
     // Payment checkout ralated apis
-    app.post("/payment-checkout-session", async (req, res) => {
+    app.post("/payment-checkout-session", verifyFBToken, async (req, res) => {
       try {
         const { price, packageId, email, packageName, employeeLimit } =
           req.body;
@@ -685,7 +691,7 @@ async function run() {
       res.send(result);
     });
 
-    app.patch("/payment-success", async (req, res) => {
+    app.patch("/payment-success", verifyFBToken, async (req, res) => {
       try {
         const sessionId = req.query.session_id;
         if (!sessionId) {
@@ -743,7 +749,7 @@ async function run() {
     });
 
     // For the return button
-    app.patch("/employeeAssets/return/:id", async (req, res) => {
+    app.patch("/employeeAssets/return/:id", verifyFBToken, async (req, res) => {
       const id = req.params.id;
 
       try {
@@ -776,7 +782,7 @@ async function run() {
     });
 
     // PATCH route for asset update
-    app.patch("/hrAssets/:id", async (req, res) => {
+    app.patch("/hrAssets/:id", verifyFBToken, async (req, res) => {
       try {
         const { id } = req.params;
         const {
@@ -813,15 +819,19 @@ async function run() {
     });
 
     // Employee delete
-    app.delete("/users/employee-team-delete/:id", async (req, res) => {
-      const id = req.params.id;
-      const query = { _id: new ObjectId(id) };
-      const result = await employeeCollection.deleteOne(query);
-      res.send(result);
-    });
+    app.delete(
+      "/users/employee-team-delete/:id",
+      verifyFBToken,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await employeeCollection.deleteOne(query);
+        res.send(result);
+      }
+    );
 
     // Asset delete
-    app.delete("/hrAssets/:id", async (req, res) => {
+    app.delete("/hrAssets/:id", verifyFBToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await hrAssetsCollection.deleteOne(query);
