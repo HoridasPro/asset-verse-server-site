@@ -226,7 +226,7 @@ async function run() {
       }
     });
 
-    // employee assigned assets list
+    // employee assigned assets list api
     app.get("/employeeAssets", async (req, res) => {
       const searchText = req.query.searchText;
       const filterType = req.query.productType;
