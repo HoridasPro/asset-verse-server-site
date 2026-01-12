@@ -80,18 +80,31 @@ async function run() {
     const paymentCollection = db.collection("payment");
     const employeeCollection = db.collection("employees");
 
-    // admin verify token for the middleware
     const verifyAdmin = async (req, res, next) => {
-      const email = req.decoded_email;
-      const query = { email };
-      const user = await employeeCollection.findOne(query);
+      const email = req.decoded.email;
+
+      const user = await employeeCollection.findOne({ email });
+
       if (!user || user.role !== "admin") {
-        return res.status(403).send({ message: "forbidden access" });
+        return res.status(403).send({ message: "Forbidden access" });
       }
+
       next();
     };
+    const verifyHR = async (req, res, next) => {
+      const email = req.decoded.email;
+
+      const user = await employeeCollection.findOne({ email });
+
+      if (!user || user.role !== "hr") {
+        return res.status(403).send({ message: "Forbidden access" });
+      }
+
+      next();
+    };
+
     // add employee api
-    app.get("/employee-request/top-assets", verifyFBToken, async (req, res) => {
+    app.get("/employee-request/top-assets", async (req, res) => {
       try {
         const result = await requestAssetsCollection
           .aggregate([
@@ -169,7 +182,7 @@ async function run() {
     });
 
     /// Get profile
-    app.get("/profile", verifyFBToken, async (req, res) => {
+    app.get("/profile", async (req, res) => {
       const { email } = req.query;
       if (!email) return res.status(400).send({ message: "Email missing" });
       const user = await usersCollection.findOne({ email });
@@ -178,7 +191,7 @@ async function run() {
     });
 
     //  Update profile
-    app.patch("/profile", verifyFBToken, async (req, res) => {
+    app.patch("/profile", async (req, res) => {
       console.log("Patch data:", req.body);
       const { email, name, photoURL } = req.body;
       const result = await usersCollection.updateOne(
@@ -190,7 +203,7 @@ async function run() {
     });
 
     // Get companies data
-    app.get("/companies", verifyFBToken, async (req, res) => {
+    app.get("/companies", async (req, res) => {
       try {
         const companies = await employeeCollection
           .aggregate([
@@ -210,25 +223,31 @@ async function run() {
     });
 
     // get employees
-    app.get("/employees", verifyFBToken, async (req, res) => {
-      try {
-        const { email } = req.query;
-        if (!email)
-          return res.status(400).send({ message: "Email is required" });
+    app.get(
+      "/employees",
+      verifyFBToken,
+      verifyAdmin,
+      verifyHR,
+      async (req, res) => {
+        try {
+          const { email } = req.query;
+          if (!email)
+            return res.status(400).send({ message: "Email is required" });
 
-        const employee = await employeeCollection
-          .find({ email: email, role: "employee" })
-          .toArray();
+          const employee = await employeeCollection
+            .find({ email: email, role: "employee" })
+            .toArray();
 
-        res.send(employee);
-      } catch (err) {
-        console.error(err);
-        res.status(500).send({ message: "Error fetching employee" });
+          res.send(employee);
+        } catch (err) {
+          console.error(err);
+          res.status(500).send({ message: "Error fetching employee" });
+        }
       }
-    });
+    );
 
     // employee assigned assets list api
-    app.get("/employeeAssets", verifyFBToken, async (req, res) => {
+    app.get("/employeeAssets", verifyFBToken, verifyAdmin, async (req, res) => {
       const searchText = req.query.searchText;
       const filterType = req.query.productType;
       const query = {};
@@ -263,6 +282,7 @@ async function run() {
       const result = await cursor.toArray();
       res.send(result);
     });
+
     // To get data for the hr collection
     app.get("/hrAssets", async (req, res) => {
       const query = {};
@@ -273,7 +293,7 @@ async function run() {
     });
 
     //For the hr assets to get
-    app.get("/hrAssets/page", verifyFBToken, async (req, res) => {
+    app.get("/hrAssets/page", async (req, res) => {
       try {
         const limit = Number(req.query.limit) || 2;
         const page = Number(req.query.page) || 1;
@@ -281,6 +301,7 @@ async function run() {
         const total = await hrAssetsCollection.countDocuments();
         const cursor = hrAssetsCollection.find().skip(skip).limit(limit);
         const result = await cursor.toArray();
+        console.log(result);
         res.send({
           data: result,
           total,
@@ -303,7 +324,7 @@ async function run() {
     });
 
     // patch for the hr users
-    app.patch("/users/hr-user/:id", verifyFBToken, async (req, res) => {
+    app.patch("/users/hr-user/:id", async (req, res) => {
       const { id } = req.params;
       const roleInfo = req.body;
       const query = { _id: new ObjectId(id) };
@@ -317,10 +338,11 @@ async function run() {
     });
 
     // For the user role
-    app.get("/users/:email/role", verifyFBToken, async (req, res) => {
+    app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
       const query = { email };
       const user = await usersCollection.findOne(query);
+      console.log("in the user", user);
       res.send({ role: user?.role || "user" });
     });
 
@@ -348,7 +370,7 @@ async function run() {
     });
 
     // Get payment
-    app.get("/payments", verifyFBToken, async (req, res) => {
+    app.get("/payments", verifyFBToken, verifyAdmin, async (req, res) => {
       try {
         const email = req.query.email;
         const query = {};
@@ -368,7 +390,7 @@ async function run() {
         res.status(500).json({ message: error.message });
       }
     });
-    app.post("/packages", verifyFBToken, async (req, res) => {
+    app.post("/packages", async (req, res) => {
       try {
         const { packageName, employeeLimit, price, email, paymentStatus } =
           req.body;
@@ -403,7 +425,7 @@ async function run() {
     });
 
     // Request post for the employee
-    app.post("/requestAssets", verifyFBToken, async (req, res) => {
+    app.post("/requestAssets", async (req, res) => {
       const {
         employeeName: employeeName,
         productType,
@@ -568,7 +590,7 @@ async function run() {
     });
 
     // Payment checkout ralated apis
-    app.post("/payment-checkout-session", verifyFBToken, async (req, res) => {
+    app.post("/payment-checkout-session", async (req, res) => {
       try {
         const { price, packageId, email, packageName, employeeLimit } =
           req.body;
@@ -744,7 +766,7 @@ async function run() {
     });
 
     // For the return button
-    app.patch("/employeeAssets/return/:id", verifyFBToken, async (req, res) => {
+    app.patch("/employeeAssets/return/:id", async (req, res) => {
       const id = req.params.id;
 
       try {
